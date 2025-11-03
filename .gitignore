@@ -1,0 +1,13 @@
+# Build artifacts
+bin/
+out/
+*.log
+*.tmp
+
+# IDE/editor configs
+.vscode/
+.idea/
+.DS_Store
+
+# Go
+vendor/
