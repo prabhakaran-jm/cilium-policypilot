@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/hubble"
+	"github.com/prabhakaran-jm/cilium-policypilot/internal/synth"
 	"github.com/spf13/cobra"
 )
 
@@ -96,33 +97,74 @@ func cmdLearn() *cobra.Command {
 }
 
 func cmdPropose() *cobra.Command {
-	return &cobra.Command{
+	var inputFile string
+
+	cmd := &cobra.Command{
 		Use:   "propose",
 		Short: "Synthesize minimal Cilium policy",
+		Long:  "Generate CiliumNetworkPolicies from parsed flows.\nReads flows from out/flows.json (or specified input file) and generates policies.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			sample := `apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: sample
-spec:
-  endpointSelector:
-    matchLabels:
-      app: demo
-  ingress:
-  - fromEndpoints:
-    - matchLabels:
-        app: demo
-    toPorts:
-    - ports:
-      - port: "8080"
-        protocol: TCP
-`
-			if err := os.MkdirAll("out", 0o755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
+			outputFile := "out/policy.yaml"
+
+			// Determine input file
+			if inputFile == "" {
+				inputFile = "out/flows.json"
 			}
-			return os.WriteFile("out/policy.yaml", []byte(sample), 0o644)
+
+			// Read flows
+			fmt.Printf("Reading flows from %s...\n", inputFile)
+			collection, err := hubble.ReadFlowsFromFile(inputFile)
+			if err != nil {
+				return fmt.Errorf("failed to read flows: %w", err)
+			}
+
+			// Parse flows
+			parsedFlows, err := hubble.ParseFlows(collection)
+			if err != nil {
+				return fmt.Errorf("failed to parse flows: %w", err)
+			}
+
+			if len(parsedFlows) == 0 {
+				return fmt.Errorf("no valid flows found to generate policies from")
+			}
+
+			fmt.Printf("Found %d parsed flows\n", len(parsedFlows))
+
+			// Synthesize policies
+			fmt.Println("Synthesizing policies...")
+			policies, err := synth.SynthesizePolicies(parsedFlows)
+			if err != nil {
+				return fmt.Errorf("failed to synthesize policies: %w", err)
+			}
+
+			if len(policies) == 0 {
+				return fmt.Errorf("no policies generated (flows may be missing required metadata)")
+			}
+
+			fmt.Printf("Generated %d policy(ies)\n", len(policies))
+
+			// Write policies to file
+			if err := synth.WritePoliciesToFile(policies, outputFile); err != nil {
+				return fmt.Errorf("failed to write policies: %w", err)
+			}
+
+			fmt.Printf("Policies saved to %s\n", outputFile)
+
+			// Print summary
+			for _, policy := range policies {
+				fmt.Printf("  - %s/%s (namespace: %s)\n",
+					policy.Kind,
+					policy.Metadata.Name,
+					policy.Metadata.Namespace)
+			}
+
+			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&inputFile, "input", "i", "", "Input flows JSON file (default: out/flows.json)")
+
+	return cmd
 }
 
 func cmdVerify() *cobra.Command {
