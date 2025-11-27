@@ -761,4 +761,4 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-Built for the eBPF Summit Hackathon 2024. Powered by eBPF and Cilium technologies.
+Built for the eBPF Summit Hackathon 2025. Powered by eBPF and Cilium technologies.
