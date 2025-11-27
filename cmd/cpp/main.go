@@ -8,6 +8,7 @@ import (
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/hubble"
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/synth"
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/validate"
+	"github.com/prabhakaran-jm/cilium-policypilot/internal/verify"
 	"github.com/spf13/cobra"
 )
 
@@ -253,14 +254,93 @@ func cmdPropose() *cobra.Command {
 }
 
 func cmdVerify() *cobra.Command {
-	return &cobra.Command{
+	var policyFile string
+
+	cmd := &cobra.Command{
 		Use:   "verify",
-		Short: "Run verification placeholder",
+		Short: "Verify CiliumNetworkPolicy YAML syntax and structure",
+		Long:  "Validates policy YAML files for correct syntax, required fields, and CiliumNetworkPolicy structure.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Verify: would spin kind + replay flows here")
+			// Set default policy file if not provided
+			if policyFile == "" {
+				policyFile = "out/policy.yaml"
+			}
+
+			// Validate input file
+			if err := validate.FilePath(policyFile); err != nil {
+				return fmt.Errorf("invalid policy file: %w", err)
+			}
+			if err := validate.FileExtension(policyFile, ".yaml"); err != nil {
+				// Also accept .yml extension
+				if err2 := validate.FileExtension(policyFile, ".yml"); err2 != nil {
+					return fmt.Errorf("policy file must be YAML (.yaml or .yml): %w", err)
+				}
+			}
+
+			fmt.Printf("Verifying policies in %s...\n", policyFile)
+
+			// Verify policies
+			result, err := verify.VerifyPolicies(policyFile)
+			if err != nil {
+				return fmt.Errorf("verification failed: %w", err)
+			}
+
+			// Print results
+			fmt.Printf("\nVerification Results:\n")
+			fmt.Printf("  Status: ")
+			if result.Valid {
+				fmt.Println("✓ VALID")
+			} else {
+				fmt.Println("✗ INVALID")
+			}
+
+			fmt.Printf("  Policies found: %d\n", len(result.Policies))
+
+			// Print policy details
+			for i, policy := range result.Policies {
+				fmt.Printf("\n  Policy %d: %s/%s\n", i+1, policy.Kind, policy.Name)
+				if policy.Namespace != "" {
+					fmt.Printf("    Namespace: %s\n", policy.Namespace)
+				}
+				if policy.Valid {
+					fmt.Printf("    Status: ✓ VALID\n")
+				} else {
+					fmt.Printf("    Status: ✗ INVALID\n")
+					for _, err := range policy.Errors {
+						fmt.Printf("      Error: %s\n", err)
+					}
+				}
+			}
+
+			// Print overall errors if any
+			if len(result.Errors) > 0 {
+				fmt.Printf("\n  Errors:\n")
+				for _, err := range result.Errors {
+					fmt.Printf("    - %s\n", err)
+				}
+			}
+
+			// Print warnings if any
+			if len(result.Warnings) > 0 {
+				fmt.Printf("\n  Warnings:\n")
+				for _, warning := range result.Warnings {
+					fmt.Printf("    - %s\n", warning)
+				}
+			}
+
+			// Exit with error if validation failed
+			if !result.Valid {
+				return fmt.Errorf("policy verification failed")
+			}
+
+			fmt.Printf("\n✓ All policies are valid!\n")
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&policyFile, "input", "i", "", "Input policy YAML file (default: out/policy.yaml)")
+
+	return cmd
 }
 
 func cmdExplain() *cobra.Command {
