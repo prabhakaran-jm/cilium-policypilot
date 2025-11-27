@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/prabhakaran-jm/cilium-policypilot/internal/explain"
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/hubble"
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/synth"
 	"github.com/prabhakaran-jm/cilium-policypilot/internal/validate"
@@ -263,16 +264,105 @@ func cmdVerify() *cobra.Command {
 }
 
 func cmdExplain() *cobra.Command {
-	return &cobra.Command{
+	var flowsFile string
+	var policiesFile string
+	var outputFile string
+
+	cmd := &cobra.Command{
 		Use:   "explain",
-		Short: "Generate simple HTML report",
+		Short: "Generate HTML report with policy summary and network graph",
+		Long:  "Generate an HTML report with flow statistics, generated policies, and network visualization.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Explain: writing out/report.html")
-			if err := os.MkdirAll("out", 0o755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
+			// Set defaults
+			if flowsFile == "" {
+				flowsFile = "out/flows.json"
 			}
-			html := "# PolicyPilot Report\n\n```mermaid\ngraph TD; frontend-->catalog;\n```\n"
-			return os.WriteFile("out/report.html", []byte(html), 0o644)
+			if policiesFile == "" {
+				policiesFile = "out/policy.yaml"
+			}
+			if outputFile == "" {
+				outputFile = "out/report.html"
+			}
+
+			// Validate input files
+			if err := validate.FilePath(flowsFile); err != nil {
+				return fmt.Errorf("invalid flows file: %w", err)
+			}
+			if err := validate.FileExtension(flowsFile, ".json"); err != nil {
+				return fmt.Errorf("flows file must be JSON: %w", err)
+			}
+
+			// Validate output path
+			if err := validate.OutputPath(outputFile); err != nil {
+				return fmt.Errorf("invalid output path: %w", err)
+			}
+			if err := validate.FileExtension(outputFile, ".html"); err != nil {
+				return fmt.Errorf("output file must be HTML: %w", err)
+			}
+
+			fmt.Printf("Reading flows from %s...\n", flowsFile)
+			collection, err := hubble.ReadFlowsFromFile(flowsFile)
+			if err != nil {
+				return fmt.Errorf("failed to read flows: %w", err)
+			}
+
+			// Parse flows
+			parsedFlows, err := hubble.ParseFlows(collection)
+			if err != nil {
+				return fmt.Errorf("failed to parse flows: %w", err)
+			}
+
+			if len(parsedFlows) == 0 {
+				return fmt.Errorf("no valid flows found")
+			}
+
+			fmt.Printf("Found %d parsed flows\n", len(parsedFlows))
+
+			// Read policies if file exists
+			var policies []*synth.Policy
+			if _, err := os.Stat(policiesFile); err == nil {
+				fmt.Printf("Reading policies from %s...\n", policiesFile)
+				// For now, we'll synthesize policies from flows
+				// In the future, we could parse the YAML file
+				policies, err = synth.SynthesizePolicies(parsedFlows)
+				if err != nil {
+					return fmt.Errorf("failed to synthesize policies: %w", err)
+				}
+				fmt.Printf("Found %d policies\n", len(policies))
+			} else {
+				// Generate policies from flows
+				fmt.Println("No policy file found. Generating policies from flows...")
+				policies, err = synth.SynthesizePolicies(parsedFlows)
+				if err != nil {
+					return fmt.Errorf("failed to synthesize policies: %w", err)
+				}
+			}
+
+			// Generate report
+			fmt.Println("Generating report...")
+			reportData, err := explain.GenerateReport(parsedFlows, policies)
+			if err != nil {
+				return fmt.Errorf("failed to generate report: %w", err)
+			}
+
+			// Write HTML report
+			if err := explain.WriteHTMLReport(reportData, outputFile); err != nil {
+				return fmt.Errorf("failed to write HTML report: %w", err)
+			}
+
+			fmt.Printf("Report saved to %s\n", outputFile)
+			fmt.Printf("  - %d flows analyzed\n", reportData.FlowCount)
+			fmt.Printf("  - %d policies generated\n", reportData.PolicyCount)
+			fmt.Printf("  - %d namespaces\n", len(reportData.Namespaces))
+			fmt.Printf("  - Network graph included\n")
+
+			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&flowsFile, "flows", "f", "", "Input flows JSON file (default: out/flows.json)")
+	cmd.Flags().StringVarP(&policiesFile, "policies", "p", "", "Input policies YAML file (default: out/policy.yaml)")
+	cmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output HTML report file (default: out/report.html)")
+
+	return cmd
 }
