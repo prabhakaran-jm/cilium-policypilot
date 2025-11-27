@@ -13,7 +13,7 @@ type Flow struct {
 	// Destination endpoint information
 	Destination *Endpoint `json:"destination,omitempty"`
 
-	// Network layer information
+	// Network layer information (supports both "ip" and "IP" field names from Hubble)
 	IP *IP `json:"ip,omitempty"`
 
 	// Transport layer information
@@ -22,8 +22,8 @@ type Flow struct {
 	// Flow verdict (ALLOWED, DENIED, etc.)
 	Verdict string `json:"verdict,omitempty"`
 
-	// Flow type (L3_L4, L7, etc.)
-	Type *FlowType `json:"type,omitempty"`
+	// Flow type (L3_L4, L7, etc.) - can be string or FlowType struct
+	Type interface{} `json:"type,omitempty" json:"Type,omitempty"`
 
 	// Event type (PolicyVerdict, Trace, etc.)
 	EventType *EventType `json:"event_type,omitempty"`
@@ -64,8 +64,8 @@ type IP struct {
 	// Destination IP address
 	Destination string `json:"destination,omitempty"`
 
-	// IP version (4 or 6)
-	IPVersion int `json:"ipVersion,omitempty"`
+	// IP version (4 or 6) - can be int or string like "IPv4"
+	IPVersion interface{} `json:"ipVersion,omitempty"`
 }
 
 // Layer4 represents transport layer information

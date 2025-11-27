@@ -762,3 +762,14 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 Built for the eBPF Summit Hackathon 2025. Powered by eBPF and Cilium technologies.
+
+### Hackathon Category
+
+This project participates in the **Cilium Technologies** category, as it:
+- Uses **Hubble** for network flow observability
+- Generates **CiliumNetworkPolicies** from observed traffic
+- Integrates with the Cilium ecosystem
+- Enhances Cilium's policy management capabilities
+- Educates users about CiliumNetworkPolicies
+
+See [SUBMISSION.md](SUBMISSION.md) for detailed category justification.

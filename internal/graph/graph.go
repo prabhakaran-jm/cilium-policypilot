@@ -34,6 +34,7 @@ type Graph struct {
 // GenerateGraph creates a network graph from parsed flows.
 // Extracts unique nodes (pods) and edges (connections) from flows,
 // creating a representation suitable for visualization.
+// Aggregates multiple flows between the same nodes into a single edge.
 func GenerateGraph(flows []*hubble.ParsedFlow) *Graph {
 	graph := &Graph{
 		Nodes: make([]Node, 0),
@@ -42,6 +43,9 @@ func GenerateGraph(flows []*hubble.ParsedFlow) *Graph {
 
 	// Track unique nodes
 	nodeMap := make(map[string]Node)
+
+	// Track edges by source->destination, aggregating ports/protocols
+	edgeMap := make(map[string]map[string][]string) // source -> dest -> []protocol:port
 
 	// Process flows to extract nodes and edges
 	for _, flow := range flows {
@@ -74,21 +78,55 @@ func GenerateGraph(flows []*hubble.ParsedFlow) *Graph {
 			nodeMap[destID] = destNode
 		}
 
-		// Create edge
-		edgeLabel := fmt.Sprintf("%s:%d", flow.Protocol, flow.DestPort)
-		edge := Edge{
-			From:     sourceID,
-			To:       destID,
-			Port:     flow.DestPort,
-			Protocol: flow.Protocol,
-			Label:    edgeLabel,
+		// Aggregate edge information
+		if edgeMap[sourceID] == nil {
+			edgeMap[sourceID] = make(map[string][]string)
 		}
-		graph.Edges = append(graph.Edges, edge)
+		portProto := fmt.Sprintf("%s:%d", flow.Protocol, flow.DestPort)
+		// Check if this port/protocol combination already exists
+		exists := false
+		for _, existing := range edgeMap[sourceID][destID] {
+			if existing == portProto {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			edgeMap[sourceID][destID] = append(edgeMap[sourceID][destID], portProto)
+		}
 	}
 
 	// Convert node map to slice
 	for _, node := range nodeMap {
 		graph.Nodes = append(graph.Nodes, node)
+	}
+
+	// Convert aggregated edges to Edge slice
+	for sourceID, dests := range edgeMap {
+		for destID, portProtos := range dests {
+			// Aggregate multiple ports/protocols into a single label
+			edgeLabel := strings.Join(portProtos, ", ")
+			if len(portProtos) > 3 {
+				edgeLabel = fmt.Sprintf("%s, ... (%d total)", strings.Join(portProtos[:3], ", "), len(portProtos))
+			}
+
+			// Use first port/protocol for the edge struct (for compatibility)
+			parts := strings.Split(portProtos[0], ":")
+			protocol := parts[0]
+			var port uint16
+			if len(parts) > 1 {
+				fmt.Sscanf(parts[1], "%d", &port)
+			}
+
+			edge := Edge{
+				From:     sourceID,
+				To:       destID,
+				Port:     port,
+				Protocol: protocol,
+				Label:    edgeLabel,
+			}
+			graph.Edges = append(graph.Edges, edge)
+		}
 	}
 
 	// Sort nodes and edges for consistent output
@@ -108,9 +146,19 @@ func GenerateGraph(flows []*hubble.ParsedFlow) *Graph {
 // ToMermaid generates a Mermaid diagram string from the graph.
 // Returns a Mermaid flowchart syntax string that can be rendered
 // in HTML using the Mermaid.js library.
+// Limits diagram size to prevent Mermaid "Maximum text size" errors.
 func (g *Graph) ToMermaid() string {
-	var sb strings.Builder
+	// Mermaid has limits on diagram complexity
+	// Limit to reasonable sizes to prevent rendering errors
+	maxNodes := 50
+	maxEdges := 100
 
+	// If graph is too large, create a simplified version
+	if len(g.Nodes) > maxNodes || len(g.Edges) > maxEdges {
+		return g.ToMermaidSimplified(maxNodes, maxEdges)
+	}
+
+	var sb strings.Builder
 	sb.WriteString("graph TD\n")
 
 	// Add nodes
@@ -128,7 +176,57 @@ func (g *Graph) ToMermaid() string {
 		if edgeLabel == "" {
 			edgeLabel = fmt.Sprintf("%s:%d", edge.Protocol, edge.Port)
 		}
+		// Escape special characters in edge labels
+		edgeLabel = strings.ReplaceAll(edgeLabel, "|", "\\|")
 		sb.WriteString(fmt.Sprintf("    %s -->|%s| %s\n", edge.From, edgeLabel, edge.To))
+	}
+
+	return sb.String()
+}
+
+// ToMermaidSimplified generates a simplified Mermaid diagram for large graphs
+func (g *Graph) ToMermaidSimplified(maxNodes, maxEdges int) string {
+	var sb strings.Builder
+
+	sb.WriteString("graph TD\n")
+	sb.WriteString(fmt.Sprintf("    note1[\"⚠️ Graph Simplified<br/>Too many nodes/edges to display<br/>"))
+	sb.WriteString(fmt.Sprintf("Total: %d nodes, %d edges<br/>", len(g.Nodes), len(g.Edges)))
+	sb.WriteString(fmt.Sprintf("Showing: %d nodes, %d edges\"]\n", maxNodes, maxEdges))
+
+	// Add limited nodes
+	nodeCount := 0
+	for _, node := range g.Nodes {
+		if nodeCount >= maxNodes {
+			break
+		}
+		nodeLabel := fmt.Sprintf("%s[%s]", node.ID, node.Label)
+		if node.Namespace != "" {
+			nodeLabel = fmt.Sprintf("%s[%s<br/>ns: %s]", node.ID, node.Label, node.Namespace)
+		}
+		sb.WriteString(fmt.Sprintf("    %s\n", nodeLabel))
+		nodeCount++
+	}
+
+	// Add limited edges (only between nodes we're showing)
+	nodeSet := make(map[string]bool)
+	for i := 0; i < nodeCount && i < len(g.Nodes); i++ {
+		nodeSet[g.Nodes[i].ID] = true
+	}
+
+	edgeCount := 0
+	for _, edge := range g.Edges {
+		if edgeCount >= maxEdges {
+			break
+		}
+		if nodeSet[edge.From] && nodeSet[edge.To] {
+			edgeLabel := edge.Label
+			if edgeLabel == "" {
+				edgeLabel = fmt.Sprintf("%s:%d", edge.Protocol, edge.Port)
+			}
+			edgeLabel = strings.ReplaceAll(edgeLabel, "|", "\\|")
+			sb.WriteString(fmt.Sprintf("    %s -->|%s| %s\n", edge.From, edgeLabel, edge.To))
+			edgeCount++
+		}
 	}
 
 	return sb.String()

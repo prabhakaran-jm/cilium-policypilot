@@ -175,6 +175,9 @@ func generatePolicyForEndpoint(group *EndpointFlows) (*Policy, error) {
 		return nil, nil
 	}
 
+	// Generate egress rules for DNS (required for service discovery)
+	egressRules := generateEgressRulesForDNS(group.Key.Namespace)
+
 	policy := &Policy{
 		APIVersion: "cilium.io/v2",
 		Kind:       "CiliumNetworkPolicy",
@@ -187,6 +190,7 @@ func generatePolicyForEndpoint(group *EndpointFlows) (*Policy, error) {
 				MatchLabels: group.Key.Labels,
 			},
 			Ingress: ingressRules,
+			Egress:  egressRules,
 		},
 	}
 
@@ -293,8 +297,10 @@ func generateIngressRules(flows []*hubble.ParsedFlow) []IngressRule {
 		}
 	}
 
-	// Convert map to slice
+	// Convert map to slice and split large port lists
 	rules := make([]IngressRule, 0, len(ruleMap))
+	const maxPortsPerRule = 40 // Cilium limit: max 40 ports per toPorts[].ports
+
 	for _, rule := range ruleMap {
 		// Sort ports within each rule
 		for i := range rule.ToPorts {
@@ -302,7 +308,33 @@ func generateIngressRules(flows []*hubble.ParsedFlow) []IngressRule {
 				return rule.ToPorts[i].Ports[a].Port < rule.ToPorts[i].Ports[b].Port
 			})
 		}
-		rules = append(rules, *rule)
+
+		// Split large port lists into multiple PortRules
+		var splitPortRules []PortRule
+		for _, portRule := range rule.ToPorts {
+			if len(portRule.Ports) <= maxPortsPerRule {
+				// No splitting needed
+				splitPortRules = append(splitPortRules, portRule)
+			} else {
+				// Split into chunks of maxPortsPerRule
+				for i := 0; i < len(portRule.Ports); i += maxPortsPerRule {
+					end := i + maxPortsPerRule
+					if end > len(portRule.Ports) {
+						end = len(portRule.Ports)
+					}
+					splitPortRules = append(splitPortRules, PortRule{
+						Ports: portRule.Ports[i:end],
+					})
+				}
+			}
+		}
+
+		// Create new rule with split port rules
+		newRule := IngressRule{
+			FromEndpoints: rule.FromEndpoints,
+			ToPorts:       splitPortRules,
+		}
+		rules = append(rules, newRule)
 	}
 
 	// Sort rules by source labels for consistent output
@@ -312,4 +344,60 @@ func generateIngressRules(flows []*hubble.ParsedFlow) []IngressRule {
 	})
 
 	return rules
+}
+
+// generateEgressRulesForDNS creates egress rules to allow DNS queries to kube-dns
+// This is required for pods to resolve service names and connect to other services
+func generateEgressRulesForDNS(namespace string) []EgressRule {
+	// Allow DNS queries to kube-dns in kube-system namespace
+	// This allows pods to resolve service names like "frontend.demo.svc.cluster.local"
+	return []EgressRule{
+		{
+			ToEndpoints: []EndpointSelector{
+				{
+					MatchLabels: map[string]string{
+						"k8s:k8s-app": "kube-dns",
+					},
+				},
+			},
+			ToPorts: []PortRule{
+				{
+					Ports: []PortProtocol{
+						{
+							Port:     "53",
+							Protocol: "UDP",
+						},
+						{
+							Port:     "53",
+							Protocol: "TCP",
+						},
+					},
+				},
+			},
+		},
+		// Also allow DNS queries to any endpoint in kube-system (for CoreDNS)
+		{
+			ToEndpoints: []EndpointSelector{
+				{
+					MatchLabels: map[string]string{
+						"k8s:io.kubernetes.pod.namespace": "kube-system",
+					},
+				},
+			},
+			ToPorts: []PortRule{
+				{
+					Ports: []PortProtocol{
+						{
+							Port:     "53",
+							Protocol: "UDP",
+						},
+						{
+							Port:     "53",
+							Protocol: "TCP",
+						},
+					},
+				},
+			},
+		},
+	}
 }

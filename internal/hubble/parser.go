@@ -4,21 +4,106 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
-// ReadFlowsFromFile reads and parses flows from a JSON file
+// ReadFlowsFromFile reads and parses flows from a JSON file.
+// Supports both PolicyPilot format (single JSON object with flows array)
+// and Hubble NDJSON format (newline-delimited JSON with flow objects).
 func ReadFlowsFromFile(filePath string) (*FlowCollection, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read flows file: %w", err)
 	}
 
+	// Try parsing as single JSON object first (PolicyPilot format)
+	// Normalize field names first: "IP" -> "ip", "ipVersion" string -> int
+	dataStr := string(data)
+	dataStr = strings.ReplaceAll(dataStr, `"IP":`, `"ip":`)
+	dataStr = strings.ReplaceAll(dataStr, `"ipVersion":"IPv4"`, `"ipVersion":4`)
+	dataStr = strings.ReplaceAll(dataStr, `"ipVersion":"IPv6"`, `"ipVersion":6`)
+
+	// Try unmarshaling into FlowCollection
 	var collection FlowCollection
-	if err := json.Unmarshal(data, &collection); err != nil {
-		return nil, fmt.Errorf("failed to parse flows JSON: %w", err)
+	if err := json.Unmarshal([]byte(dataStr), &collection); err == nil && collection.Schema != "" {
+		return &collection, nil
 	}
 
-	return &collection, nil
+	// If that failed, try a more lenient approach: unmarshal into map and convert
+	// This handles cases where the JSON has extra fields that don't match the struct
+	var rawCollection map[string]interface{}
+	if err2 := json.Unmarshal([]byte(dataStr), &rawCollection); err2 == nil {
+		if schema, ok := rawCollection["schema"].(string); ok && schema != "" {
+			if flowsRaw, ok := rawCollection["flows"].([]interface{}); ok {
+				flows := make([]*Flow, 0, len(flowsRaw))
+				for _, flowRaw := range flowsRaw {
+					flowJSON, _ := json.Marshal(flowRaw)
+					var flow Flow
+					// Use json.Unmarshal with strict mode disabled - it will ignore unknown fields
+					if err3 := json.Unmarshal(flowJSON, &flow); err3 == nil {
+						flows = append(flows, &flow)
+					}
+				}
+				if len(flows) > 0 {
+					return &FlowCollection{
+						Schema: schema,
+						Flows:  flows,
+					}, nil
+				}
+			}
+		}
+	}
+
+	// If that fails, try parsing as NDJSON (Hubble format)
+	// Each line is: {"flow":{...},"node_name":"...","time":"..."}
+	lines := strings.Split(string(data), "\n")
+	flows := make([]*Flow, 0)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Parse line as JSON
+		var lineObj map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &lineObj); err != nil {
+			continue // Skip invalid lines
+		}
+
+		// Extract flow object
+		if flowData, ok := lineObj["flow"]; ok {
+			flowJSON, err := json.Marshal(flowData)
+			if err != nil {
+				continue
+			}
+
+			// Normalize field names: "IP" -> "ip", handle ipVersion string -> int
+			flowJSONStr := string(flowJSON)
+			flowJSONStr = strings.ReplaceAll(flowJSONStr, `"IP":`, `"ip":`)
+
+			// Convert ipVersion string to int if needed
+			if strings.Contains(flowJSONStr, `"ipVersion":"IPv4"`) {
+				flowJSONStr = strings.ReplaceAll(flowJSONStr, `"ipVersion":"IPv4"`, `"ipVersion":4`)
+			} else if strings.Contains(flowJSONStr, `"ipVersion":"IPv6"`) {
+				flowJSONStr = strings.ReplaceAll(flowJSONStr, `"ipVersion":"IPv6"`, `"ipVersion":6`)
+			}
+
+			var flow Flow
+			if err := json.Unmarshal([]byte(flowJSONStr), &flow); err == nil {
+				flows = append(flows, &flow)
+			}
+		}
+	}
+
+	if len(flows) > 0 {
+		return &FlowCollection{
+			Schema: "cpp.flows.v1",
+			Flows:  flows,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("failed to parse flows JSON: could not parse as single JSON or NDJSON format")
 }
 
 // ParseFlow extracts key metadata from a Flow for policy generation
