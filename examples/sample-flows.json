@@ -1,0 +1,165 @@
+{
+  "schema": "cpp.flows.v1",
+  "flows": [
+    {
+      "time": "2024-01-15T10:30:00Z",
+      "source": {
+        "labels": [
+          "k8s:app=frontend",
+          "k8s:io.kubernetes.pod.namespace=default",
+          "k8s:version=v1"
+        ],
+        "namespace": "default",
+        "pod_name": "frontend-7d4b8c9f5-xk2mh",
+        "workloads": [
+          {
+            "name": "frontend",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12345
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=catalog",
+          "k8s:io.kubernetes.pod.namespace=default",
+          "k8s:version=v1"
+        ],
+        "namespace": "default",
+        "pod_name": "catalog-6d8f9a2b-y3m4n",
+        "workloads": [
+          {
+            "name": "catalog",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12346
+      },
+      "ip": {
+        "source": "10.0.1.5",
+        "destination": "10.0.1.6",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54321,
+          "destination_port": 8080
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:05Z",
+      "source": {
+        "labels": [
+          "k8s:app=frontend",
+          "k8s:io.kubernetes.pod.namespace=default",
+          "k8s:version=v1"
+        ],
+        "namespace": "default",
+        "pod_name": "frontend-7d4b8c9f5-xk2mh",
+        "workloads": [
+          {
+            "name": "frontend",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12345
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=cart",
+          "k8s:io.kubernetes.pod.namespace=default",
+          "k8s:version=v1"
+        ],
+        "namespace": "default",
+        "pod_name": "cart-5a7b9c1d-e4f5g",
+        "workloads": [
+          {
+            "name": "cart",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12347
+      },
+      "ip": {
+        "source": "10.0.1.5",
+        "destination": "10.0.1.7",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54321,
+          "destination_port": 7070
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:10Z",
+      "source": {
+        "labels": [
+          "k8s:app=catalog",
+          "k8s:io.kubernetes.pod.namespace=default",
+          "k8s:version=v1"
+        ],
+        "namespace": "default",
+        "pod_name": "catalog-6d8f9a2b-y3m4n",
+        "workloads": [
+          {
+            "name": "catalog",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12346
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=database",
+          "k8s:io.kubernetes.pod.namespace=default",
+          "k8s:version=v1"
+        ],
+        "namespace": "default",
+        "pod_name": "database-3b4c5d6e-f7g8h",
+        "workloads": [
+          {
+            "name": "database",
+            "kind": "StatefulSet"
+          }
+        ],
+        "identity": 12348
+      },
+      "ip": {
+        "source": "10.0.1.6",
+        "destination": "10.0.1.8",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54322,
+          "destination_port": 5432
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    }
+  ]
+}
+

@@ -3,6 +3,8 @@ bin/
 out/
 *.log
 *.tmp
+cpp.exe
+*.exe
 
 # IDE/editor configs
 .vscode/
