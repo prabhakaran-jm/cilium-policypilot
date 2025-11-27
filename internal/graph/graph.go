@@ -31,7 +31,9 @@ type Graph struct {
 	Edges []Edge
 }
 
-// GenerateGraph creates a network graph from parsed flows
+// GenerateGraph creates a network graph from parsed flows.
+// Extracts unique nodes (pods) and edges (connections) from flows,
+// creating a representation suitable for visualization.
 func GenerateGraph(flows []*hubble.ParsedFlow) *Graph {
 	graph := &Graph{
 		Nodes: make([]Node, 0),
@@ -103,7 +105,9 @@ func GenerateGraph(flows []*hubble.ParsedFlow) *Graph {
 	return graph
 }
 
-// ToMermaid generates a Mermaid diagram string from the graph
+// ToMermaid generates a Mermaid diagram string from the graph.
+// Returns a Mermaid flowchart syntax string that can be rendered
+// in HTML using the Mermaid.js library.
 func (g *Graph) ToMermaid() string {
 	var sb strings.Builder
 
@@ -185,4 +189,3 @@ func sanitizeID(id string) string {
 
 	return id
 }
-

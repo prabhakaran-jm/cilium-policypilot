@@ -25,7 +25,9 @@ type ReportData struct {
 	Protocols       map[string]int
 }
 
-// GenerateReport generates an HTML report from flows and policies
+// GenerateReport generates an HTML report from flows and policies.
+// Collects statistics, generates network graph, and prepares data
+// for HTML report generation.
 func GenerateReport(flows []*hubble.ParsedFlow, policies []*synth.Policy) (*ReportData, error) {
 	// Generate network graph
 	networkGraph := graph.GenerateGraph(flows)

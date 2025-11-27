@@ -25,7 +25,9 @@ type PolicyInfo struct {
 	Errors    []string
 }
 
-// VerifyPolicies validates policy YAML files
+// VerifyPolicies validates policy YAML files for correct syntax and structure.
+// Supports multi-document YAML files and validates each policy document.
+// Returns a VerificationResult with validation status and detailed error messages.
 func VerifyPolicies(filePath string) (*VerificationResult, error) {
 	result := &VerificationResult{
 		Valid:    true,

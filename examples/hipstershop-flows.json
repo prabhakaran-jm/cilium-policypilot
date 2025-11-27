@@ -1,0 +1,430 @@
+{
+  "schema": "cpp.flows.v1",
+  "flows": [
+    {
+      "time": "2024-01-15T10:30:00Z",
+      "source": {
+        "labels": [
+          "k8s:app=frontend",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "frontend-7d4b8c9f5-xk2mh",
+        "workloads": [
+          {
+            "name": "frontend",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12345
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=productcatalogservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "productcatalogservice-6d8f9a2b-y3m4n",
+        "workloads": [
+          {
+            "name": "productcatalogservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12346
+      },
+      "ip": {
+        "source": "10.0.1.5",
+        "destination": "10.0.1.6",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54321,
+          "destination_port": 3550
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:05Z",
+      "source": {
+        "labels": [
+          "k8s:app=frontend",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "frontend-7d4b8c9f5-xk2mh",
+        "workloads": [
+          {
+            "name": "frontend",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12345
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=cartservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "cartservice-5a7b9c1d-e4f5g",
+        "workloads": [
+          {
+            "name": "cartservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12347
+      },
+      "ip": {
+        "source": "10.0.1.5",
+        "destination": "10.0.1.7",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54321,
+          "destination_port": 7070
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:10Z",
+      "source": {
+        "labels": [
+          "k8s:app=frontend",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "frontend-7d4b8c9f5-xk2mh",
+        "workloads": [
+          {
+            "name": "frontend",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12345
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=currencyservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "currencyservice-3b4c5d6e-f7g8h",
+        "workloads": [
+          {
+            "name": "currencyservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12348
+      },
+      "ip": {
+        "source": "10.0.1.5",
+        "destination": "10.0.1.8",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54321,
+          "destination_port": 7000
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:15Z",
+      "source": {
+        "labels": [
+          "k8s:app=productcatalogservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "productcatalogservice-6d8f9a2b-y3m4n",
+        "workloads": [
+          {
+            "name": "productcatalogservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12346
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=postgresql",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "postgresql-3b4c5d6e-f7g8h",
+        "workloads": [
+          {
+            "name": "postgresql",
+            "kind": "StatefulSet"
+          }
+        ],
+        "identity": 12349
+      },
+      "ip": {
+        "source": "10.0.1.6",
+        "destination": "10.0.1.9",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54322,
+          "destination_port": 5432
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:20Z",
+      "source": {
+        "labels": [
+          "k8s:app=cartservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "cartservice-5a7b9c1d-e4f5g",
+        "workloads": [
+          {
+            "name": "cartservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12347
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=redis-cart",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "redis-cart-2c3d4e5f-g6h7i",
+        "workloads": [
+          {
+            "name": "redis-cart",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12350
+      },
+      "ip": {
+        "source": "10.0.1.7",
+        "destination": "10.0.1.10",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54323,
+          "destination_port": 6379
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:25Z",
+      "source": {
+        "labels": [
+          "k8s:app=frontend",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "frontend-7d4b8c9f5-xk2mh",
+        "workloads": [
+          {
+            "name": "frontend",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12345
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=checkoutservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "checkoutservice-8e9f0a1b-c2d3e",
+        "workloads": [
+          {
+            "name": "checkoutservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12351
+      },
+      "ip": {
+        "source": "10.0.1.5",
+        "destination": "10.0.1.11",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54321,
+          "destination_port": 5050
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:30Z",
+      "source": {
+        "labels": [
+          "k8s:app=checkoutservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "checkoutservice-8e9f0a1b-c2d3e",
+        "workloads": [
+          {
+            "name": "checkoutservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12351
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=paymentservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "paymentservice-9f0a1b2c-d3e4f",
+        "workloads": [
+          {
+            "name": "paymentservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12352
+      },
+      "ip": {
+        "source": "10.0.1.11",
+        "destination": "10.0.1.12",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54324,
+          "destination_port": 50051
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    },
+    {
+      "time": "2024-01-15T10:30:35Z",
+      "source": {
+        "labels": [
+          "k8s:app=checkoutservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "checkoutservice-8e9f0a1b-c2d3e",
+        "workloads": [
+          {
+            "name": "checkoutservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12351
+      },
+      "destination": {
+        "labels": [
+          "k8s:app=shippingservice",
+          "k8s:io.kubernetes.pod.namespace=hipstershop",
+          "k8s:version=v1"
+        ],
+        "namespace": "hipstershop",
+        "pod_name": "shippingservice-0a1b2c3d-e4f5g",
+        "workloads": [
+          {
+            "name": "shippingservice",
+            "kind": "Deployment"
+          }
+        ],
+        "identity": 12353
+      },
+      "ip": {
+        "source": "10.0.1.11",
+        "destination": "10.0.1.13",
+        "ipVersion": 4
+      },
+      "l4": {
+        "TCP": {
+          "source_port": 54325,
+          "destination_port": 50051
+        }
+      },
+      "verdict": "ALLOWED",
+      "type": {
+        "type": 1
+      },
+      "event_type": {
+        "type": 4
+      }
+    }
+  ]
+}
+

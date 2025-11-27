@@ -69,7 +69,10 @@ type EndpointFlows struct {
 	Flows []*hubble.ParsedFlow
 }
 
-// SynthesizePolicies generates CiliumNetworkPolicies from parsed flows
+// SynthesizePolicies generates CiliumNetworkPolicies from parsed flows.
+// It groups flows by destination endpoint and creates ingress rules based on
+// observed source endpoints, ports, and protocols. Returns a list of policies,
+// one per unique destination endpoint.
 func SynthesizePolicies(flows []*hubble.ParsedFlow) ([]*Policy, error) {
 	if len(flows) == 0 {
 		return nil, fmt.Errorf("no flows provided")
