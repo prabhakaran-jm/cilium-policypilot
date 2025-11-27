@@ -385,7 +385,7 @@ flowchart TD
     CreateRules --> GenerateYAML[Generate CiliumNetworkPolicy<br/>YAML structure]
     GenerateYAML --> MoreGroups{More groups?}
     MoreGroups -->|Yes| ForEach
-    MoreGroups -->|No| End([Output: Policies[]])
+    MoreGroups -->|No| End([Output: Policies])
     
     style Start fill:#e3f2fd
     style End fill:#c8e6c9
