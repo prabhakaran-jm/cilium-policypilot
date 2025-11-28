@@ -224,11 +224,76 @@ func generateHTML(data *ReportData) string {
             <li class="policy-item">
                 <strong>%s</strong> (namespace: %s)
                 <br>
-                <small>Protects endpoints matching: %s</small>
-            </li>`,
+                <small>Protects endpoints matching: %s</small>`,
 			policy.Metadata.Name,
 			policy.Metadata.Namespace,
 			formatLabels(policy.Spec.EndpointSelector.MatchLabels)))
+
+		// Add ingress rules details
+		if len(policy.Spec.Ingress) > 0 {
+			sb.WriteString(`<br><small style="color: #666; margin-top: 8px; display: block;">
+                    <strong>Ingress Rules:</strong> `)
+			for i, rule := range policy.Spec.Ingress {
+				if i > 0 {
+					sb.WriteString("; ")
+				}
+				// Format from endpoints
+				fromEndpoints := make([]string, 0)
+				for _, ep := range rule.FromEndpoints {
+					fromEndpoints = append(fromEndpoints, formatLabels(ep.MatchLabels))
+				}
+				// Format ports
+				ports := make([]string, 0)
+				for _, portRule := range rule.ToPorts {
+					for _, pp := range portRule.Ports {
+						ports = append(ports, fmt.Sprintf("%s/%s", pp.Port, pp.Protocol))
+					}
+				}
+				if len(fromEndpoints) > 0 && len(ports) > 0 {
+					sb.WriteString(fmt.Sprintf("From %s → Ports: %s", strings.Join(fromEndpoints, ", "), strings.Join(ports, ", ")))
+				}
+			}
+			sb.WriteString(`</small>`)
+		}
+
+		// Add egress rules details
+		if len(policy.Spec.Egress) > 0 {
+			sb.WriteString(`<br><small style="color: #666; margin-top: 8px; display: block;">
+                    <strong>Egress Rules:</strong> `)
+			for i, rule := range policy.Spec.Egress {
+				if i > 0 {
+					sb.WriteString("; ")
+				}
+				// Format to endpoints
+				toEndpoints := make([]string, 0)
+				for _, ep := range rule.ToEndpoints {
+					toEndpoints = append(toEndpoints, formatLabels(ep.MatchLabels))
+				}
+				// Format ports
+				ports := make([]string, 0)
+				for _, portRule := range rule.ToPorts {
+					for _, pp := range portRule.Ports {
+						ports = append(ports, fmt.Sprintf("%s/%s", pp.Port, pp.Protocol))
+					}
+				}
+				if len(toEndpoints) > 0 && len(ports) > 0 {
+					sb.WriteString(fmt.Sprintf("To %s → Ports: %s", strings.Join(toEndpoints, ", "), strings.Join(ports, ", ")))
+				} else if len(ports) > 0 {
+					sb.WriteString(fmt.Sprintf("Ports: %s", strings.Join(ports, ", ")))
+				}
+			}
+			sb.WriteString(`</small>`)
+		}
+
+		// Add rule counts summary
+		ingressCount := len(policy.Spec.Ingress)
+		egressCount := len(policy.Spec.Egress)
+		if ingressCount > 0 || egressCount > 0 {
+			sb.WriteString(fmt.Sprintf(`<br><small style="color: #999; margin-top: 4px; display: block;">
+                    %d ingress rule(s), %d egress rule(s)</small>`, ingressCount, egressCount))
+		}
+
+		sb.WriteString(`</li>`)
 	}
 
 	sb.WriteString(`
